@@ -30,10 +30,16 @@ class Api {
 
         $archive = new Archive($this->context);
 
+        // Sanitize filename: remove CRLF, quotes, and other control characters to prevent header injection
+        $safe_as = preg_replace('/[\r\n"\\\\\x00-\x1f\x7f]/', '', $as);
+        if (empty($safe_as)) {
+            $safe_as = 'download';
+        }
+
         set_time_limit(0);
         session_write_close();
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . $as . '"');
+        header('Content-Disposition: attachment; filename="' . $safe_as . '"');
         header('Connection: close');
         $ok = $archive->output($type, $base_href, $hrefs);
 
@@ -52,7 +58,9 @@ class Api {
         }
 
         if ($this->request->query_boolean('setup', false)) {
-            $response['setup'] = $this->setup->to_jsono($this->context->is_admin());
+            // Only return setup info to authenticated admins
+            Util::json_fail(Util::ERR_UNSUPPORTED, 'admin access required', !$this->context->is_admin());
+            $response['setup'] = $this->setup->to_jsono(true);
         }
 
         if ($this->request->query_boolean('theme', false)) {

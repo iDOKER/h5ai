@@ -25,6 +25,12 @@ class Thumb {
 
     public function thumb($type, $source_href, $width, $height) {
         $source_path = $this->context->to_path($source_href);
+
+        // Validate path is within managed area to prevent directory traversal
+        if (!$this->context->is_managed_path($source_path)) {
+            return null;
+        }
+
         if (!file_exists($source_path) || Util::starts_with($source_path, $this->setup->get('CACHE_PUB_PATH'))) {
             return null;
         }
@@ -88,12 +94,19 @@ class Thumb {
         $capture_path = $this->thumbs_path . '/capture-' . sha1($source_path) . '.jpg';
 
         if (!file_exists($capture_path) || filemtime($source_path) >= filemtime($capture_path)) {
-            foreach ($cmdv as &$arg) {
-                $arg = str_replace('[SRC]', $source_path, $arg);
-                $arg = str_replace('[DEST]', $capture_path, $arg);
+            // Build command array with proper escaping
+            $safe_cmdv = [];
+            foreach ($cmdv as $arg) {
+                if ($arg === '[SRC]') {
+                    $safe_cmdv[] = $source_path;
+                } elseif ($arg === '[DEST]') {
+                    $safe_cmdv[] = $capture_path;
+                } else {
+                    $safe_cmdv[] = $arg;
+                }
             }
 
-            Util::exec_cmdv($cmdv);
+            Util::exec_cmdv($safe_cmdv);
         }
 
         return file_exists($capture_path) ? $capture_path : null;

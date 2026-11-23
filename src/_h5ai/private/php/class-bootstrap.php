@@ -8,6 +8,16 @@ class Bootstrap {
         putenv('LANG=en_US.UTF-8');
         setlocale(LC_CTYPE, 'en_US.UTF-8');
         date_default_timezone_set(@date_default_timezone_get());
+
+        // Configure secure session settings
+        $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.use_only_cookies', 1);
+        ini_set('session.cookie_samesite', 'Lax');
+        if ($is_https) {
+            ini_set('session.cookie_secure', 1);
+        }
+
         session_start();
 
         $session = new Session($_SESSION);

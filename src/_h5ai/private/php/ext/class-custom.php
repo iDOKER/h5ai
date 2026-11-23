@@ -32,6 +32,14 @@ class Custom {
         $root_path = $this->context->get_setup()->get('FILE_PREFIX');
         $path = $this->context->to_path($href);
 
+        // Validate path is within managed area to prevent directory traversal
+        if (!$this->context->is_managed_path($path)) {
+            return [
+                'header' => ['content' => null, 'type' => null],
+                'footer' => ['content' => null, 'type' => null]
+            ];
+        }
+
         $header = null;
         $header_type = null;
         $footer = null;

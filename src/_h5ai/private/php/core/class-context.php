@@ -53,7 +53,16 @@ class Context {
     }
 
     public function login_admin($pass) {
-        $this->session->set(Context::$AS_ADMIN_SESSION_KEY, strcasecmp(hash('sha512', $pass), $this->passhash) === 0);
+        // Use hash_equals to prevent timing attacks
+        $hash = hash('sha512', $pass);
+        $is_valid = hash_equals($this->passhash, $hash);
+
+        if ($is_valid) {
+            // Regenerate session ID after successful login to prevent session fixation
+            session_regenerate_id(true);
+        }
+
+        $this->session->set(Context::$AS_ADMIN_SESSION_KEY, $is_valid);
         return $this->session->get(Context::$AS_ADMIN_SESSION_KEY);
     }
 
@@ -249,8 +258,20 @@ class Context {
         $hrefs = [];
 
         foreach ($requests as $req) {
+            // Validate required parameters
+            if (!isset($req['type']) || !isset($req['href']) || !isset($req['width']) || !isset($req['height'])) {
+                continue;
+            }
+
+            // Validate and sanitize numeric parameters
+            $width = intval($req['width']);
+            $height = intval($req['height']);
+            if ($width <= 0 || $height < 0 || $width > 2000 || $height > 2000) {
+                continue;
+            }
+
             $thumb = new Thumb($this);
-            $hrefs[] = $thumb->thumb($req['type'], $req['href'], $req['width'], $req['height']);
+            $hrefs[] = $thumb->thumb($req['type'], $req['href'], $width, $height);
         }
 
         return $hrefs;
@@ -271,11 +292,19 @@ class Context {
         $html = '<style class="x-head">';
 
         if (sizeof($fonts) > 0) {
-            $html .= '#root,input,select{font-family:"' . implode('","', $fonts) . '"!important}';
+            // Sanitize font names: escape quotes and remove control characters
+            $safe_fonts = array_map(function($font) {
+                return preg_replace('/["\\\\\x00-\x1f\x7f]/', '', $font);
+            }, $fonts);
+            $html .= '#root,input,select{font-family:"' . implode('","', $safe_fonts) . '"!important}';
         }
 
         if (sizeof($fonts_mono) > 0) {
-            $html .= 'pre,code{font-family:"' . implode('","', $fonts_mono) . '"!important}';
+            // Sanitize font names: escape quotes and remove control characters
+            $safe_fonts_mono = array_map(function($font) {
+                return preg_replace('/["\\\\\x00-\x1f\x7f]/', '', $font);
+            }, $fonts_mono);
+            $html .= 'pre,code{font-family:"' . implode('","', $safe_fonts_mono) . '"!important}';
         }
 
         $html .= '</style>';
@@ -290,11 +319,15 @@ class Context {
         $html = '';
 
         foreach ($styles as $href) {
-            $html .= '<link rel="stylesheet" href="' . $this->prefix_x_head_href($href) . '" class="x-head">';
+            // Sanitize href: remove control characters and quotes
+            $safe_href = preg_replace('/[\x00-\x1f\x7f"\'<>]/', '', $this->prefix_x_head_href($href));
+            $html .= '<link rel="stylesheet" href="' . htmlspecialchars($safe_href, ENT_QUOTES, 'UTF-8') . '" class="x-head">';
         }
 
         foreach ($scripts as $href) {
-            $html .= '<script src="' . $this->prefix_x_head_href($href) . '" class="x-head"></script>';
+            // Sanitize href: remove control characters and quotes
+            $safe_href = preg_replace('/[\x00-\x1f\x7f"\'<>]/', '', $this->prefix_x_head_href($href));
+            $html .= '<script src="' . htmlspecialchars($safe_href, ENT_QUOTES, 'UTF-8') . '" class="x-head"></script>';
         }
 
         $html .= $this->get_fonts_html();
