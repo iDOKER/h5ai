@@ -1,6 +1,33 @@
-/.nyc_output/
-/build/
-/coverage/
-/local/
+# Dependencies
 /node_modules/
-/npm-debug.log
+
+# Build output
+/build/
+/.nyc_output/
+/coverage/
+
+# Local development
+/local/
+
+# Logs
+*.log
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
