@@ -2,21 +2,24 @@ name: Build and Release
 
 on:
   push:
-    branches: [ master ]
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ master ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: '版本号（如 0.30.1）'
+        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取完整历史用于版本号生成
+        fetch-depth: 0
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -27,47 +30,62 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Extract version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION=${{ github.event.inputs.tag }}
+        fi
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Building version: ${VERSION}"
+
+    - name: Update package.json version
+      run: |
+        node -e "
+        const fs = require('fs');
+        const pkg = require('./package.json');
+        pkg.version = '${{ steps.version.outputs.version }}';
+        fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+        "
+
     - name: Build release package
       run: npm run build
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: h5ai-build
+        name: h5ai-${{ steps.version.outputs.version }}
         path: build/*.zip
-        retention-days: 30
-
-    - name: Get version info
-      id: version
-      run: |
-        if [[ $GITHUB_REF == refs/tags/v* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
-        else
-          VERSION=$(node -p "require('./package.json').version")
-        fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Building version: $VERSION"
+        retention-days: 365
 
     - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: build/*.zip
-        name: h5ai v${{ steps.version.outputs.version }}
-        body: |
-          ## h5ai v${{ steps.version.outputs.version }}
-
-          自动构建的部署包。
-
-          ### 安装说明
-          1. 下载 zip 文件
-          2. 解压到 Web 服务器目录
-          3. 确保 PHP 7.0+ 已安装
-          4. 访问 `/_h5ai/` 查看信息页面
-
-          ### 变更内容
-          详见 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md)
-        draft: false
-        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        TAG="v${VERSION}"
+        ZIP_FILE=$(ls build/*.zip | head -1)
+
+        # 如果 tag 不存在则创建（workflow_dispatch 场景）
+        if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release ${VERSION}"
+          git push origin "$TAG"
+        fi
+
+        gh release create "$TAG" "$ZIP_FILE" \
+          --title "h5ai v${VERSION}" \
+          --notes "## h5ai v${VERSION}
+
+        ### 安装说明
+        1. 下载 zip 文件
+        2. 解压到 Web 服务器目录
+        3. 确保 PHP 7.0+ 已安装
+        4. 访问 \`/_h5ai/\` 查看信息页面
+
+        ### 变更日志
+        详见 [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/master/CHANGELOG.md)" \
+          --latest
