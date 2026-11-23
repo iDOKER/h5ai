@@ -54,11 +54,11 @@ jobs:
       run: npm run build
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: h5ai-${{ steps.version.outputs.version }}
         path: build/*.zip
-        retention-days: 365
+        retention-days: 90
 
     - name: Create Release
       env:
