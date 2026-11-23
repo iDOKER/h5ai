@@ -9,6 +9,22 @@ const settings = Object.assign({
     enabled: false
 }, allsettings.custom);
 
+// Sanitize HTML to prevent XSS attacks
+// Remove dangerous tags and attributes while preserving safe formatting
+const sanitize_html = html => {
+    // Remove script tags and their content
+    html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    // Remove event handlers (onclick, onerror, onload, etc.)
+    html = html.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+    // Remove javascript: URLs
+    html = html.replace(/(?:href|src|action)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '');
+    // Remove data: URLs in src attributes (except images)
+    html = html.replace(/src\s*=\s*(?:"data:(?!image\/)[^"]*"|'data:(?!image\/)[^']*')/gi, '');
+    // Remove iframe, object, embed, form tags
+    html = html.replace(/<\/?(?:iframe|object|embed|form|input|textarea|button|select|style)\b[^>]*>/gi, '');
+    return html;
+};
+
 const update = (data, key) => {
     const $el = dom(`#content-${key}`);
 
@@ -17,6 +33,8 @@ const update = (data, key) => {
         if (data[key].type === 'md') {
             content = marked(content);
         }
+        // Sanitize HTML content to prevent XSS
+        content = sanitize_html(content);
         $el.html(content).show();
     } else {
         $el.hide();

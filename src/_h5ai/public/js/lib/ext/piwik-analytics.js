@@ -14,9 +14,16 @@ const init = () => {
         return;
     }
 
+    // Validate baseURL to prevent script injection
+    // Only allow valid domain names/IPs with optional path
+    const baseURL = settings.baseURL;
+    if (!baseURL || baseURL === 'not-set' || !/^[a-zA-Z0-9.-]+(?::\d+)?(?:\/[a-zA-Z0-9._/-]*)?$/.test(baseURL)) {
+        return;
+    }
+
     // reference: http://piwik.org/docs/javascript-tracking/
 
-    const pkBaseURL = (win.location.protocol === 'https:' ? 'https://' : 'http://') + settings.baseURL + '/';
+    const pkBaseURL = (win.location.protocol === 'https:' ? 'https://' : 'http://') + baseURL + '/';
     const queue = [];
     let piwikTracker = null;
 

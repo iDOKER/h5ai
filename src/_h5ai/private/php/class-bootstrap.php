@@ -26,6 +26,17 @@ class Bootstrap {
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
+        // Content Security Policy - restrict resource loading
+        // Note: Adjust this policy based on your deployment needs
+        $csp = "default-src 'self'; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+               "img-src 'self' data: blob:; " .
+               "font-src 'self' https://fonts.gstatic.com; " .
+               "connect-src 'self'; " .
+               "frame-ancestors 'self';";
+        header('Content-Security-Policy: ' . $csp);
+
         session_start();
 
         $session = new Session($_SESSION);

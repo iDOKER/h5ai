@@ -34,14 +34,24 @@ const filterItems = (pattern = '') => {
         return;
     }
 
+    // Prevent ReDoS: limit pattern length
+    if (pattern.length > 200) {
+        return;
+    }
+
     $filter.addCls('pending');
 
-    const re = new RegExp(pattern, settings.ignorecase ? 'i' : '');
-    const items = filter(location.getItem().content, item => re.test(item.label));
+    try {
+        const re = new RegExp(pattern, settings.ignorecase ? 'i' : '');
+        const items = filter(location.getItem().content, item => re.test(item.label));
 
-    $filter.rmCls('pending');
-    view.setHint('noMatch');
-    view.setItems(items);
+        $filter.rmCls('pending');
+        view.setHint('noMatch');
+        view.setItems(items);
+    } catch (e) {
+        // Invalid regex pattern, silently ignore
+        $filter.rmCls('pending');
+    }
 };
 
 const update = () => {
