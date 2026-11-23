@@ -10,7 +10,10 @@ class Search {
     public function get_paths($root, $pattern = null, $ignorecase = false) {
         $paths = [];
         if ($pattern && $this->context->is_managed_path($root)) {
-            $re = Util::wrap_pattern($pattern);
+            // Escape regex special characters to prevent ReDoS attacks
+            // Only allow literal string matching
+            $safe_pattern = preg_quote($pattern, Util::RE_DELIMITER);
+            $re = Util::wrap_pattern($safe_pattern);
             if ($ignorecase) {
                 $re .= 'i';
             }

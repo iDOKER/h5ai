@@ -164,7 +164,7 @@ class Image {
     public function save_dest_jpeg($filename, $quality = 80) {
         if (!is_null($this->dest)) {
             @imagejpeg($this->dest, $filename, $quality);
-            @chmod($filename, 0775);
+            @chmod($filename, 0644);
         }
     }
 

@@ -53,6 +53,14 @@ class Context {
     }
 
     public function login_admin($pass) {
+        // Block login if using default password hash (empty password)
+        // This prevents unauthorized access when admin hasn't set a password
+        if (strcasecmp($this->passhash, Context::$DEFAULT_PASSHASH) === 0) {
+            // Default password detected - block admin access
+            $this->session->set(Context::$AS_ADMIN_SESSION_KEY, false);
+            return false;
+        }
+
         // Use hash_equals to prevent timing attacks
         $hash = hash('sha512', $pass);
         $is_valid = hash_equals($this->passhash, $hash);
@@ -147,15 +155,33 @@ class Context {
     }
 
     public function is_managed_path($path) {
-        if (!is_dir($path) || strpos($path, '../') !== false || strpos($path, '/..') !== false || $path === '..') {
+        if (!is_dir($path)) {
             return false;
         }
 
-        if (strpos($path, $this->setup->get('PUBLIC_PATH')) === 0) {
+        // Use realpath() to resolve symlinks and normalize path, preventing traversal attacks
+        $real_path = realpath($path);
+        if ($real_path === false) {
             return false;
         }
 
-        if (strpos($path, $this->setup->get('PRIVATE_PATH')) === 0) {
+        $root_path = realpath($this->setup->get('ROOT_PATH'));
+        if ($root_path === false || strpos($real_path, $root_path) !== 0) {
+            return false;
+        }
+
+        $public_path = realpath($this->setup->get('PUBLIC_PATH'));
+        if ($public_path !== false && strpos($real_path, $public_path) === 0) {
+            return false;
+        }
+
+        $private_path = realpath($this->setup->get('PRIVATE_PATH'));
+        if ($private_path !== false && strpos($real_path, $private_path) === 0) {
+            return false;
+        }
+
+        // Additional check for traversal patterns in the original path
+        if (strpos($path, '../') !== false || strpos($path, '/..') !== false || $path === '..') {
             return false;
         }
 

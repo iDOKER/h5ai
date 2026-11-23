@@ -14,9 +14,17 @@ class Bootstrap {
         ini_set('session.cookie_httponly', 1);
         ini_set('session.use_only_cookies', 1);
         ini_set('session.cookie_samesite', 'Lax');
+        ini_set('session.use_strict_mode', 1);  // Prevent session fixation
+        ini_set('session.gc_maxlifetime', 3600); // 1 hour session timeout
         if ($is_https) {
             ini_set('session.cookie_secure', 1);
         }
+
+        // Set security headers
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-XSS-Protection: 1; mode=block');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
 
         session_start();
 
