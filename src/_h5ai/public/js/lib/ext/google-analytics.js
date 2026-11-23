@@ -22,9 +22,16 @@ const init = () => {
         return;
     }
 
+    // Validate Google Analytics ID format to prevent misconfiguration
+    // UA format: UA-XXXXXX-X, G-A format: G-XXXXXXXXXX
+    const id = settings.id;
+    if (!id || !/^(UA-\d{4,10}-\d{1,4}|G-[A-Z0-9]{6,12})$/.test(id)) {
+        return;
+    }
+
     snippet();
 
-    win.ga('create', settings.id, 'auto');
+    win.ga('create', id, 'auto');
 
     event.sub('location.changed', item => {
         const loc = win.location;
