@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v0.30.0 - *2026-11-23*
+
+* fork from [lrsjng/h5ai](https://github.com/lrsjng/h5ai)
+* now require PHP 7.0.0+
+* add GitHub Actions workflow for automated build and release
+* update README to clarify relationship with upstream project
+
+### Security Fixes
+
+* fix HTTP header injection vulnerability in download filename (`class-api.php`)
+* fix information disclosure: restrict setup info to authenticated admins only (`class-api.php`)
+* fix path traversal in custom header/footer lookup (`class-custom.php`)
+* fix XSS in fallback mode HTML output (`class-fallback.php`)
+* fix XSS in `<head>` HTML generation for resources and fonts (`class-context.php`)
+* fix timing attack in admin password comparison using `hash_equals()` (`class-context.php`)
+* fix session fixation: regenerate session ID after successful login (`class-context.php`)
+* add secure session cookie configuration: HttpOnly, Secure, SameSite=Lax (`class-bootstrap.php`)
+* fix path traversal in thumbnail generation (`class-thumb.php`)
+* add parameter validation for thumbnail requests (`class-context.php`)
+
+
 * now require PHP 7.0.0+
 * fix archive-single-item problem
 * add header/footer search stop condition
