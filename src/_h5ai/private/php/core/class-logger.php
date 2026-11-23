@@ -19,9 +19,37 @@ class Logger {
         $now = self::time();
         $message = number_format($now - self::$start, 3) . ' ' . number_format($now - self::$prev, 3) . ' ' . $message;
 
-        @error_log($message . ' ' . var_export($obj, true));
+        // Sanitize sensitive data before logging
+        $sanitized_obj = self::sanitize_for_log($obj);
+        @error_log($message . ' ' . var_export($sanitized_obj, true));
 
         self::$prev = $now;
+    }
+
+    /**
+     * Sanitize sensitive data to prevent information leakage in logs
+     */
+    private static function sanitize_for_log($data) {
+        if (!is_array($data)) {
+            // Mask potential passwords, tokens, and sensitive strings
+            if (is_string($data) && preg_match('/pass|token|secret|key|auth/i', $data)) {
+                return '***REDACTED***';
+            }
+            return $data;
+        }
+
+        $sanitized = [];
+        foreach ($data as $key => $value) {
+            // Mask sensitive keys
+            if (preg_match('/pass|token|secret|key|auth|session/i', $key)) {
+                $sanitized[$key] = '***REDACTED***';
+            } elseif (is_array($value)) {
+                $sanitized[$key] = self::sanitize_for_log($value);
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        return $sanitized;
     }
 }
 
