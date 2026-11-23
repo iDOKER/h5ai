@@ -16,10 +16,11 @@
     "precommit": "npm run -s lint && npm run -s test"
   },
   "devDependencies": {
-    "@babel/core": "7.12.10",
-    "@babel/preset-env": "7.12.11",
+    "@babel/core": "^8.1.3",
+    "@babel/preset-env": "^8.0.7",
+    "babel-loader": "^10.1.1",
     "eslint": "7.18.0",
-    "ghu": "^0.15.0",
+    "ghu": "^0.28.5",
     "jsdom": "^16.7.0",
     "kjua": "0.9.0",
     "lolight": "1.4.0",
