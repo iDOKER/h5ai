@@ -49,6 +49,8 @@ jobs:
         "
 
     - name: Build release package
+      env:
+        NODE_OPTIONS: --openssl-legacy-provider
       run: npm run build
 
     - name: Upload build artifact
