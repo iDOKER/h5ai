@@ -103,11 +103,14 @@ class Api {
         }
 
         if ($this->request->query_boolean('setup', false)) {
-            // Only return setup info to authenticated admins
-            Util::json_fail(Util::ERR_UNSUPPORTED, 'admin access required', !$this->context->is_admin());
-            // Log admin setup info requests for audit trail
-            error_log('[h5ai] Admin setup info requested from IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
-            $response['setup'] = $this->setup->to_jsono(true);
+            // to_jsono() only exposes PUBLIC_HREF/ROOT_HREF to non-admins;
+            // all sensitive keys are filtered out unless $as_admin is true.
+            // The frontend needs the public hrefs on every page load, so
+            // this must not be gated behind admin authentication.
+            if ($this->context->is_admin()) {
+                error_log('[h5ai] Admin setup info requested from IP: ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+            }
+            $response['setup'] = $this->setup->to_jsono($this->context->is_admin());
         }
 
         if ($this->request->query_boolean('theme', false)) {
